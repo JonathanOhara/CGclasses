@@ -1,0 +1,22 @@
+<RCC>
+    <qresource prefix="/shaders/vert">
+        <file>cartoon.vert</file>
+        <file>flat.vert</file>
+        <file>gouraud.vert</file>
+        <file>normal.vert</file>
+        <file>phong.vert</file>
+        <file>texture.vert</file>
+        <file>twoSideRendering.vert</file>
+        <file>test.vert</file>
+    </qresource>
+    <qresource prefix="/shaders/frag">
+        <file>cartoon.frag</file>
+        <file>flat.frag</file>
+        <file>gouraud.frag</file>
+        <file>normal.frag</file>
+        <file>phong.frag</file>
+        <file>texture.frag</file>
+        <file>twoSideRendering.frag</file>
+        <file>test.frag</file>
+    </qresource>
+</RCC>
