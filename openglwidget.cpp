@@ -16,6 +16,7 @@ OpenGLWidget::OpenGLWidget ( QWidget * parent ):  QOpenGLWidget ( parent ) {
     vertexShader = NULL ;
     fragmentShader = NULL ;
 
+    texCoords = NULL;
 }
 
 OpenGLWidget::~OpenGLWidget (){
@@ -29,8 +30,7 @@ void OpenGLWidget :: initializeGL () {
     std :: cerr << " GLSL " << glGetString ( GL_SHADING_LANGUAGE_VERSION )<<"\n";
     glEnable ( GL_DEPTH_TEST );
 
-    connect (& timer , SIGNAL ( timeout () ) , this , SLOT ( animate () ) ) ;
-
+    connect (&timer , SIGNAL ( timeout () ) , this , SLOT ( animate () ) ) ;
 
     timer.start (0) ;
 }
@@ -48,13 +48,43 @@ void OpenGLWidget :: resizeGL (int w , int h ) {
     update();
 }
 
+void OpenGLWidget :: genTexCoordsCylinder (){
+
+    if( texCoords ) delete [] texCoords ;
+    // Compute minimum and maximum values
+    float fmax = std :: numeric_limits <float >:: max () ;
+    float minz = fmax ;
+    float maxz = - fmax ;
+    for ( int i =0; i < numVertices ; ++ i ) {
+        if( vertices [ i ]. z () < minz ) minz = vertices [ i ]. z () ;
+        if( vertices [ i ]. z () > maxz ) maxz = vertices [ i ]. z () ;
+    }
+
+    texCoords = new QVector2D [ numVertices ];
+    for ( int i =0; i < numVertices ; ++ i ){
+        // https :// en. wikipedia .org/ wiki / Atan2
+        float s = ( atan2 ( vertices [ i ]. y () , vertices [ i ]. x () ) + M_PI ) / (2* M_PI );
+        float t = 1.0f -( vertices [ i ]. z () - minz ) / ( maxz - minz );
+        texCoords [ i ] = QVector2D (s , t ) ;
+    }
+}
+
+void OpenGLWidget :: createTexture ( const QString & imagePath ){
+    makeCurrent () ;
+
+    image . load ( imagePath ) ;
+    texture = new QOpenGLTexture ( image ) ;
+    // By Default , Qt build a mipmap when loading from a image ;
+    // Thus , set Minification Filter for using MipMap
+    texture -> setMinificationFilter ( QOpenGLTexture ::LinearMipMapLinear ) ;
+    texture -> setMagnificationFilter ( QOpenGLTexture :: Linear ) ;
+    texture -> setWrapMode ( QOpenGLTexture :: Repeat ) ;
+}
+
 void OpenGLWidget :: paintGL () {
     glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
     if (! vboVertices )
         return ;
-
-    //qDebug() << "Paint: inv" << invDiag << " mid " << midPoint;
-
 
     modelView . setToIdentity () ;
     modelView . lookAt ( camera . eye , camera . at , camera . up ) ;
@@ -80,6 +110,7 @@ void OpenGLWidget :: paintGL () {
     shaderProgram -> setUniformValue ("normalMatrix", modelView.normalMatrix () ) ;
     shaderProgram -> setUniformValue ("projectionMatrix", projectionMatrix );
 
+
     vboVertices -> bind () ;
     shaderProgram -> enableAttributeArray ("vPosition") ;
     shaderProgram -> setAttributeBuffer ("vPosition", GL_FLOAT , 0 , 4 , 0) ;
@@ -90,13 +121,21 @@ void OpenGLWidget :: paintGL () {
 
     vboIndices -> bind () ;
 
+    vbocoordText -> bind ();
+    shaderProgram -> enableAttributeArray ("vcoordText") ;
+    shaderProgram -> setAttributeBuffer ("vcoordText", GL_FLOAT , 0 , 2 , 0) ;
+
+    texture -> bind (0) ;
+    shaderProgram -> setUniformValue ("colorTexture", 0) ;
+
     glDrawElements ( GL_TRIANGLES , numFaces * 3 , GL_UNSIGNED_INT , 0) ;
 
+    texture->release();
+    vbocoordText->release();
     vboIndices -> release () ;
     vboVertices -> release () ;
     vboVertices->release();
     shaderProgram -> release () ;
-
 }
 
 void OpenGLWidget :: toggleBackgroundColor ( bool changeBColor ){
@@ -135,6 +174,14 @@ void OpenGLWidget::createVBOs( ){
     vboIndices -> allocate ( indices , numFaces * 3 * sizeof ( unsigned int ) ) ;
     delete [] indices ;
     indices = NULL ;
+
+    vbocoordText = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    vbocoordText->create();
+    vbocoordText->bind();
+    vbocoordText->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    vbocoordText->allocate(texCoords, texCoords->length() * sizeof(QVector2D));
+    delete[] texCoords;
+    texCoords = NULL;
 
     vboNormals = new QOpenGLBuffer ( QOpenGLBuffer :: VertexBuffer ) ;
     vboNormals -> create () ;
@@ -190,7 +237,7 @@ void OpenGLWidget::destroyShaders(){
 void OpenGLWidget :: createShaders (){
     destroyShaders () ;
 
-    int currentShader = 6;
+    int currentShader = 4;
 
     QString vertexShaderFile [] = {
         ":/shaders/vert/flat.vert",
@@ -326,9 +373,17 @@ void OpenGLWidget :: showFileOpenDialog (){
     QDir :: homePath () ,QString ("%1 Files(*.%2) ").arg ( QString (fileFormat .toUpper () ) ). arg ( QString (fileFormat ) ) ) ;
     if (! fileName . isEmpty () ) {
         readOFFFile ( fileName ) ;
-        // future infos will be programed here !
+        //future infos will be programed here!
+        genTexCoordsCylinder();
+
+        QString path = QDir::currentPath();
+        path.remove( path.lastIndexOf("/"), path.length() - path.lastIndexOf("/") );
+        path += "/CGClasses/goldens.jpg";
+        createTexture( path );
+
         createVBOs () ;
         createShaders () ;
+
         update () ;
     }
 }

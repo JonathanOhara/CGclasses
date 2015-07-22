@@ -25,6 +25,8 @@ public :
     void readOFFFile(const QString &fileName);
     void calculateNormals();
 
+    void genTexCoordsCylinder();
+
     void keyPressEvent( QKeyEvent * event );
 
     void mouseMoveEvent( QMouseEvent * event );
@@ -42,10 +44,16 @@ private:
     QOpenGLBuffer * vboNormals ;
     QOpenGLBuffer * vboColors ;
 
+    QOpenGLBuffer * vbocoordText ;
+    QOpenGLTexture * texture ;
+    QImage image;
+
     QVector4D * vertices ;
     QVector4D * colors ;
     QVector3D * normals;
     unsigned int * indices ;
+
+    QVector2D * texCoords;
 
     QTimer timer;
     TrackBall trackBall;
@@ -73,6 +81,8 @@ signals :
 public slots :
     void createShaders () ;
     void destroyShaders () ;
+
+    void createTexture( const QString & imagePath );
 
     void toggleBackgroundColor ( bool changeBColor ) ;
     void toggleDiagonal ( bool diagonal );
