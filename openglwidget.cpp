@@ -69,8 +69,14 @@ void OpenGLWidget :: genTexCoordsCylinder (){
     }
 }
 
-void OpenGLWidget :: createTexture ( const QString & imagePath ){
+void OpenGLWidget :: createTexture ( ){
     makeCurrent () ;
+
+    QString imagePath = QDir::currentPath();
+    imagePath.remove( imagePath.lastIndexOf("/"), imagePath.length() - imagePath.lastIndexOf("/") );
+    imagePath += "/CGClasses/cloud.jpeg";
+
+    qDebug() << "Texture: " << imagePath;
 
     image . load ( imagePath ) ;
     texture = new QOpenGLTexture ( image ) ;
@@ -79,6 +85,24 @@ void OpenGLWidget :: createTexture ( const QString & imagePath ){
     texture -> setMinificationFilter ( QOpenGLTexture ::LinearMipMapLinear ) ;
     texture -> setMagnificationFilter ( QOpenGLTexture :: Linear ) ;
     texture -> setWrapMode ( QOpenGLTexture :: Repeat ) ;
+}
+
+void OpenGLWidget :: createTextureLayer ( ){
+    makeCurrent () ;
+
+    QString imagePath = QDir::currentPath();
+    imagePath.remove( imagePath.lastIndexOf("/"), imagePath.length() - imagePath.lastIndexOf("/") );
+    imagePath += "/CGClasses/earth.jpg";
+
+    qDebug() << "Texture Layer: " << imagePath;
+
+    imageLayer . load ( imagePath ) ;
+    textureLayer = new QOpenGLTexture ( imageLayer ) ;
+    // By Default , Qt build a mipmap when loading from a image ;
+    // Thus , set Minification Filter for using MipMap
+    textureLayer -> setMinificationFilter ( QOpenGLTexture ::LinearMipMapLinear ) ;
+    textureLayer -> setMagnificationFilter ( QOpenGLTexture :: Linear ) ;
+    textureLayer -> setWrapMode ( QOpenGLTexture :: Repeat ) ;
 }
 
 void OpenGLWidget :: paintGL () {
@@ -128,9 +152,14 @@ void OpenGLWidget :: paintGL () {
     texture -> bind (0) ;
     shaderProgram -> setUniformValue ("colorTexture", 0) ;
 
+    textureLayer -> bind (0) ;
+    shaderProgram -> setUniformValue ("colorTextureLayer", 0) ;
+
     glDrawElements ( GL_TRIANGLES , numFaces * 3 , GL_UNSIGNED_INT , 0) ;
 
-    texture->release();
+    texture->release(0);
+    textureLayer->release(0);
+
     vbocoordText->release();
     vboIndices -> release () ;
     vboVertices -> release () ;
@@ -237,7 +266,7 @@ void OpenGLWidget::destroyShaders(){
 void OpenGLWidget :: createShaders (){
     destroyShaders () ;
 
-    int currentShader = 4;
+    int currentShader = 6;
 
     QString vertexShaderFile [] = {
         ":/shaders/vert/flat.vert",
@@ -246,6 +275,7 @@ void OpenGLWidget :: createShaders (){
         ":/shaders/vert/cartoon.vert",
         ":/shaders/vert/texture.vert",
         ":/shaders/vert/normal.vert",
+        ":/shaders/vert/multiple_texture.vert",
         ":/shaders/vert/test.vert"
     };
     QString fragmentShaderFile [] = {
@@ -255,6 +285,7 @@ void OpenGLWidget :: createShaders (){
         ":/shaders/frag/cartoon.frag",
         ":/shaders/frag/texture.frag",
         ":/shaders/frag/normal.frag",
+        ":/shaders/frag/multiple_texture.frag",
         ":/shaders/frag/test.frag"
     };
     vertexShader = new QOpenGLShader ( QOpenGLShader :: Vertex ) ;
@@ -376,10 +407,8 @@ void OpenGLWidget :: showFileOpenDialog (){
         //future infos will be programed here!
         genTexCoordsCylinder();
 
-        QString path = QDir::currentPath();
-        path.remove( path.lastIndexOf("/"), path.length() - path.lastIndexOf("/") );
-        path += "/CGClasses/goldens.jpg";
-        createTexture( path );
+        createTexture();
+        createTextureLayer();
 
         createVBOs () ;
         createShaders () ;

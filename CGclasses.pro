@@ -37,4 +37,6 @@ DISTFILES += \
     twoSideRendering.vert \
     twoSideRendering.frag \
     test.vert \
-    test.frag
+    test.frag \
+    multiple_texture.vert \
+    multiple_texture.frag

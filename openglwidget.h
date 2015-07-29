@@ -46,7 +46,9 @@ private:
 
     QOpenGLBuffer * vbocoordText ;
     QOpenGLTexture * texture ;
+    QOpenGLTexture * textureLayer ;
     QImage image;
+    QImage imageLayer;
 
     QVector4D * vertices ;
     QVector4D * colors ;
@@ -82,7 +84,8 @@ public slots :
     void createShaders () ;
     void destroyShaders () ;
 
-    void createTexture( const QString & imagePath );
+    void createTexture();
+    void createTextureLayer();
 
     void toggleBackgroundColor ( bool changeBColor ) ;
     void toggleDiagonal ( bool diagonal );

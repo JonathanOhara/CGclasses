@@ -8,6 +8,7 @@
         <file>texture.vert</file>
         <file>twoSideRendering.vert</file>
         <file>test.vert</file>
+        <file>multiple_texture.vert</file>
     </qresource>
     <qresource prefix="/shaders/frag">
         <file>cartoon.frag</file>
@@ -18,5 +19,6 @@
         <file>texture.frag</file>
         <file>twoSideRendering.frag</file>
         <file>test.frag</file>
+        <file>multiple_texture.frag</file>
     </qresource>
 </RCC>
