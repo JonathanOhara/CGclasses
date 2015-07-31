@@ -1,5 +1,6 @@
 # version 330
 in vec4 vPosition ;
+in vec2 vcoordText ;
 in vec3 vNormal ;
 
 uniform mat4 modelView ;
@@ -11,10 +12,14 @@ out vec3 fN ;
 out vec3 fE ;
 out vec3 fL ;
 
+out vec2 fTextCoord;
+
 void main (){
     vec4 eyePosition = modelView * vPosition ;
     fN = normalMatrix * vNormal ;
     fL = lightPosition . xyz - eyePosition . xyz ;
     fE = - eyePosition . xyz ;
     gl_Position = projectionMatrix * eyePosition ;
+
+    fTextCoord = vcoordText;
 }

@@ -23,18 +23,10 @@ vec4 Phong ( vec3 n ) {
     float Kd = max ( NdotL , 0.0) ;
     float Ks = ( NdotL < 0.0) ? 0.0 : pow ( max ( dot (R , E ) , 0.0) ,shininess ) ;
 
+
     float mossContrib = ( texture ( colorTextureLayer , fTextCoord ) ).r;
     vec4 mixtex = mix ( texture ( colorTexture , fTextCoord ) , texture ( colorTextureLayer , fTextCoord ) , mossContrib );
     vec4 diffuse = Kd * diffuseProduct * mixtex ;
-
-    /*
-    vec4 diffuse = Kd * diffuseProduct ;
-    */
-/*
-    vec4 mixtex = texture ( colorTexture , fTextCoord );
-    vec4 diffuse = Kd * diffuseProduct * mixtex ;
-*/
-
 
     vec4 specular = Ks * specularProduct ;
     vec4 ambient = ambientProduct ;
@@ -46,4 +38,7 @@ void main () {
     } else {
         frag_color = mix ( vec4 ( Phong( - fN ) . xyz ,1) , vec4(0.0 ,2.0 ,0.0 ,1.0) , 0.7 ) ;
     }
+
+    float mossContrib = ( texture ( colorTextureLayer , fTextCoord ) ).r;
+    frag_color = mix ( texture ( colorTexture , fTextCoord ) , texture ( colorTextureLayer , fTextCoord ) , mossContrib );
 }

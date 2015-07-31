@@ -61,6 +61,7 @@ void OpenGLWidget :: genTexCoordsCylinder (){
     }
 
     texCoords = new QVector2D [ numVertices ];
+
     for ( int i =0; i < numVertices ; ++ i ){
         // https :// en. wikipedia .org/ wiki / Atan2
         float s = ( atan2 ( vertices [ i ]. y () , vertices [ i ]. x () ) + M_PI ) / (2* M_PI );
@@ -69,11 +70,64 @@ void OpenGLWidget :: genTexCoordsCylinder (){
     }
 }
 
+void OpenGLWidget :: genTangents () {
+    if ( tangents ) delete [] tangents ;
+    tangents = new QVector4D [ numVertices ];
+    QVector3D * bitangents = new QVector3D [ numVertices ];
+    for ( unsigned int i = 0; i < numFaces ; i ++) {
+        unsigned int i1 = indices [ i * 3 ];
+        unsigned int i2 = indices [ i * 3 + 1];
+        unsigned int i3 = indices [ i * 3 + 2];
+        QVector3D E = vertices [ i1 ]. toVector3D () ;
+        QVector3D F = vertices [ i2 ]. toVector3D () ;
+        QVector3D G = vertices [ i3 ]. toVector3D () ;
+        QVector2D stE = texCoords [ i1 ];
+        QVector2D stF = texCoords [ i2 ];
+        QVector2D stG = texCoords [ i3 ];
+        QVector3D P = F - E ;
+        QVector3D Q = G - E ;
+        QVector2D st1 = stF - stE ;
+        QVector2D st2 = stG - stE ;
+
+        QMatrix2x2 M ;
+        M (0 ,0) = st2 . y () ; M (0 ,1) = - st1 . y () ;
+        M (1 ,0) = - st2 . x () ; M (1 ,1) = st1 . x () ;
+        M *= (1.0 / ( st1 . x () * st2 . y () - st2 . x () * st1 . y () ) ) ;
+
+        QVector4D T = QVector4D ( M (0 ,0) * P . x () + M (0 ,1) * Q . x () ,
+            M (0 ,0) * P . y () + M (0 ,1) * Q . y () ,
+            M (0 ,0) * P . z () + M (0 ,1) * Q . z () , 0.0);
+
+        QVector3D B = QVector3D ( M (1 ,0) * P . x () + M (1 ,1) * Q . x () ,
+        M (1 ,0) * P . y () + M (1 ,1) * Q . y () ,
+        M (1 ,0) * P . z () + M (1 ,1) * Q . z () ) ;
+        tangents [ i1 ] += T ;
+        tangents [ i2 ] += T ;
+        tangents [ i3 ] += T ;
+        bitangents [ i1 ] += B ;
+        bitangents [ i2 ] += B ;
+        bitangents [ i3 ] += B ;
+    }
+
+    for ( unsigned int i = 0; i < numVertices ; i ++) {
+        const QVector3D & n = normals [ i ];
+        const QVector4D & t = tangents [ i ];
+        tangents [ i ] = ( t - n *
+        QVector3D :: dotProduct (n , t . toVector3D () ) ) .
+        normalized () ;
+        QVector3D b = QVector3D :: crossProduct (n , t . toVector3D () ) ;
+        double hand = QVector3D :: dotProduct (b , bitangents [ i ]) ;
+        tangents [ i ]. setW (( hand < 0.0) ? -1.0 : 1.0) ;
+    }
+    delete [] bitangents ;
+}
+
 void OpenGLWidget :: createTexture ( ){
     makeCurrent () ;
 
     QString imagePath = QDir::currentPath();
     imagePath.remove( imagePath.lastIndexOf("/"), imagePath.length() - imagePath.lastIndexOf("/") );
+    //imagePath += "/CGClasses/earth.jpg";
     imagePath += "/CGClasses/cloud.jpeg";
 
     qDebug() << "Texture: " << imagePath;
@@ -92,6 +146,7 @@ void OpenGLWidget :: createTextureLayer ( ){
 
     QString imagePath = QDir::currentPath();
     imagePath.remove( imagePath.lastIndexOf("/"), imagePath.length() - imagePath.lastIndexOf("/") );
+    //imagePath += "/CGClasses/cloud.jpeg";
     imagePath += "/CGClasses/earth.jpg";
 
     qDebug() << "Texture Layer: " << imagePath;
@@ -103,6 +158,7 @@ void OpenGLWidget :: createTextureLayer ( ){
     textureLayer -> setMinificationFilter ( QOpenGLTexture ::LinearMipMapLinear ) ;
     textureLayer -> setMagnificationFilter ( QOpenGLTexture :: Linear ) ;
     textureLayer -> setWrapMode ( QOpenGLTexture :: Repeat ) ;
+
 }
 
 void OpenGLWidget :: paintGL () {
@@ -152,13 +208,13 @@ void OpenGLWidget :: paintGL () {
     texture -> bind (0) ;
     shaderProgram -> setUniformValue ("colorTexture", 0) ;
 
-    textureLayer -> bind (0) ;
-    shaderProgram -> setUniformValue ("colorTextureLayer", 0) ;
+    textureLayer -> bind (1) ;
+    shaderProgram -> setUniformValue ("colorTextureLayer", 1) ;
 
     glDrawElements ( GL_TRIANGLES , numFaces * 3 , GL_UNSIGNED_INT , 0) ;
 
     texture->release(0);
-    textureLayer->release(0);
+    textureLayer->release(1);
 
     vbocoordText->release();
     vboIndices -> release () ;
@@ -204,11 +260,17 @@ void OpenGLWidget::createVBOs( ){
     delete [] indices ;
     indices = NULL ;
 
+    qDebug() << texCoords->length();
+
+    for( int i = 0; i < numVertices; i++ ){
+        qDebug() << "i " << i << ": " << texCoords[i];
+    }
+
     vbocoordText = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
     vbocoordText->create();
     vbocoordText->bind();
     vbocoordText->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    vbocoordText->allocate(texCoords, texCoords->length() * sizeof(QVector2D));
+    vbocoordText->allocate(texCoords, numVertices * sizeof(QVector2D));
     delete[] texCoords;
     texCoords = NULL;
 
@@ -407,10 +469,11 @@ void OpenGLWidget :: showFileOpenDialog (){
         //future infos will be programed here!
         genTexCoordsCylinder();
 
+        createVBOs() ;
+
         createTexture();
         createTextureLayer();
 
-        createVBOs () ;
         createShaders () ;
 
         update () ;

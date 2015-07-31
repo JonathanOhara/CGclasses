@@ -26,6 +26,7 @@ public :
     void calculateNormals();
 
     void genTexCoordsCylinder();
+    void genTangents();
 
     void keyPressEvent( QKeyEvent * event );
 
@@ -49,6 +50,9 @@ private:
     QOpenGLTexture * textureLayer ;
     QImage image;
     QImage imageLayer;
+
+    QVector4D * tangents;
+    QVector3D * bitangents;
 
     QVector4D * vertices ;
     QVector4D * colors ;

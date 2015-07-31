@@ -39,4 +39,6 @@ DISTFILES += \
     test.vert \
     test.frag \
     multiple_texture.vert \
-    multiple_texture.frag
+    multiple_texture.frag \
+    normal_map.vert \
+    normal_map.frag
